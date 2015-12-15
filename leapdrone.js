@@ -6,9 +6,9 @@ var startRecording = false;
 var flips = true;
 var handInitialPosition = [];
 var handInitialDirection = [];
-var X_THRESHOLD = 70;
-var Z_THRESHOLD = 70;
-var Y_THRESHOLD_UP = 70;
+var X_THRESHOLD = 80;
+var Z_THRESHOLD = 80;
+var Y_THRESHOLD_UP = 80;
 var Y_THRESHOLD_DOWN = -50;
 
 

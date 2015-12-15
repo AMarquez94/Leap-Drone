@@ -4,16 +4,24 @@ var express = require('express')
   , path = require('path')
   , server = require("http").createServer(app)
   ;
-
-
+  
 app.configure(function () {
-    app.set('views', __dirname + '/views');
-    app.set('view engine', 'jade', { pretty: true });
-    app.use(express.favicon());
-    app.use(express.logger('dev'));
-    app.use(app.router);
-    app.use(express.static(path.join(__dirname, 'public')));
+		app.set('views', __dirname + '/views');
+		app.set('view engine', 'jade', { pretty: true });
+		app.use(express.favicon());
+		app.use(express.logger('dev'));
+		app.use(app.router);
+		app.use(express.static(path.join(__dirname, 'public')));
 });
+
+function sleep(milliseconds){
+	var start = new Date().getTime();
+	for (var i = 0; i < 1e7; i++){
+		if ((new Date().getTime() - start) > milliseconds){
+			break;
+		}
+	}
+}
 
 app.configure('development', function () {
     app.use(express.errorHandler());

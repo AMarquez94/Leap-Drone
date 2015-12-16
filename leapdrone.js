@@ -10,6 +10,9 @@ var X_THRESHOLD = 80;
 var Z_THRESHOLD = 80;
 var Y_THRESHOLD_UP = 80;
 var Y_THRESHOLD_DOWN = -50;
+var COOLDOWN = 6000;
+var STOPCOOLDOWN = 6000;
+var FLIP_TIME = 10;
 
 var up_lastframe = false;
 var down_lastframe = false;
@@ -70,14 +73,15 @@ Cylon.robot({
 							var moved = x || z || y_up || y_down;
 							
 							if(moved){
+								if(!(up_lastframe || down_lastframe || right_lastframe || left_lastframe || forward_lastframe || backwards_lastframe)){
+									console.log('Encendiendo luces');
+									my.drone.animateLeds('snakeGreenRed',5,0.5);
+								}
 								if(x){
 									var right = (handPosition[0] - handInitialPosition[0]) > 0;
 									
 									if(right){
-										if(right_lastframe){
-											console.log("Moving drone to right (no message)");
-										}
-										else{
+										if(!right_lastframe){
 											my.drone.right(0.2);
 											console.log("Moving drone to right (message)");
 										}
@@ -90,10 +94,7 @@ Cylon.robot({
 										stop_lastframe = false;
 									}
 									else{
-										if(left_lastframe){
-											console.log("Moving drone to left (no message)");
-										}
-										else{
+										if(!left_lastframe){
 											my.drone.left(0.2);
 											console.log("Moving drone to left (message)");
 										}
@@ -111,10 +112,7 @@ Cylon.robot({
 									var backwards = (handPosition[2] - handInitialPosition[2]) > 0;
 								
 									if(backwards){		
-										if(backwards_lastframe){
-											console.log("Moving drone backwards (no message)");
-										}
-										else{
+										if(!backwards_lastframe){
 											my.drone.back(0.2);
 											console.log("Moving drone backwards (message)");
 										}
@@ -127,10 +125,7 @@ Cylon.robot({
 										stop_lastframe = false;
 									}
 									else{
-										if(forward_lastframe){
-											console.log("Moving drone forward (no message)");
-										}
-										else{
+										if(!forward_lastframe){
 											my.drone.forward(0.2);
 											console.log("Moving drone forward (message)");
 										}
@@ -145,10 +140,7 @@ Cylon.robot({
 								}
 							
 								else if(y_up){								
-									if(up_lastframe){
-											console.log("Moving drone up (no message)");
-									}
-									else{
+									if(!up_lastframe){
 										my.drone.up(0.3);
 										console.log("Moving drone up (message)");
 									}
@@ -162,10 +154,7 @@ Cylon.robot({
 								}
 							
 								else if(y_down){
-									if(down_lastframe){
-										console.log("Moving drone down (no message)");
-									}
-									else{
+									if(!down_lastframe){
 										my.drone.down(0.3);
 										console.log("Moving drone down (message)");
 									}
@@ -178,9 +167,10 @@ Cylon.robot({
 									stop_lastframe = false;
 								}
 							}
-							else{
-								if(!stop_lastframe){
+							if(flying){
+								if(!stop_lastframe && !moved){
 									my.drone.stop();
+									//my.drone.animateLeds('green',5,1000);
 									up_lastframe = false;
 									down_lastframe = false;
 									right_lastframe = false;
@@ -191,10 +181,11 @@ Cylon.robot({
 								}
 								if(frame.gestures.length > 0){
 									frame.gestures.forEach(function(g){
-										if(g.type == 'keyTap'){
+										if(g.type == 'keyTap' && !moved){
 											flying = false;
 											my.drone.land();
 											my.drone.stop();
+											my.drone.animateLeds('green',5,0.5);
 											up_lastframe = false;
 											down_lastframe = false;
 											right_lastframe = false;
@@ -205,18 +196,32 @@ Cylon.robot({
 											console.log('LAND');
 										}
 										
-										else if(g.type == 'circle' && flying){
+										else if(g.type == 'circle' && !moved){
 											if(g.normal[2] < 0){
 												my.drone.clockwise(0.3);
 												console.log('Turning right');
+												up_lastframe = false;
+												down_lastframe = false;
+												right_lastframe = false;
+												left_lastframe = false;
+												forward_lastframe = false;
+												backwards_lastframe = false;
+												stop_lastframe = false;
 											}
 											else{
 												my.drone.counterClockwise(0.3);
 												console.log('Turning left');
+												up_lastframe = false;
+												down_lastframe = false;
+												right_lastframe = false;
+												left_lastframe = false;
+												forward_lastframe = false;
+												backwards_lastframe = false;
+												stop_lastframe = false;
 											}
 										}
 										
-										else if(g.type == 'swipe' && flying){
+										else if(g.type == 'swipe'){
 										
 											var currentPosition = g.position;
 											var startPosition = g.startPosition;
@@ -234,40 +239,44 @@ Cylon.robot({
 											if(superiorPosition === xAxis){
 												if(xDirection < 0){
 													if(flips){
+														my.drone.stop();
+														my.drone.leftFlip();
 														flips = false;
 														console.log('Swipe left');
-														my.drone.leftFlip();
-														my.drone.animateLeds('blinkRed',5,3);
-														setTimeout(enableFlip, 3000);
+														my.drone.animateLeds('blinkRed',5,COOLDOWN/10000);
+														setTimeout(enableFlip, COOLDOWN);
 													}
 													
 												} else {
 													if(flips){
+														my.drone.stop();
+														my.drone.rightFlip();
 														flips = false;
 														console.log('Swipe right');
-														my.drone.rightFlip();
-														my.drone.animateLeds('blinkRed',5,3);
-														setTimeout(enableFlip, 3000);
+														my.drone.animateLeds('blinkRed',5,COOLDOWN/10000);
+														setTimeout(enableFlip, COOLDOWN);
 													}
 												}
 											}
 											
-											if(superiorPosition === zAxis){
+											else if(superiorPosition === zAxis){
 												if(yDirection > 0){
 													if(flips){
+														my.drone.stop();
+														my.drone.frontFlip();
 														flips = false;
 														console.log('Swipe front');
-														my.drone.frontFlip();
-														my.drone.animateLeds('blinkRed',5,3);
-														setTimeout(enableFlip, 3000);
+														my.drone.animateLeds('blinkRed',5,COOLDOWN/10000);
+														setTimeout(enableFlip, COOLDOWN);
 													}
 												} else {
 													if(flips){
+														my.drone.stop();
+														my.drone.backFlip();
 														flips = false;
 														console.log('Swipe back');
-														my.drone.backFlip();
-														my.drone.animateLeds('blinkRed',5,3);
-														setTimeout(enableFlip, 3000);
+														my.drone.animateLeds('blinkRed',5,COOLDOWN/10000);
+														setTimeout(enableFlip, COOLDOWN);
 													}
 												}
 											}
@@ -292,6 +301,7 @@ Cylon.robot({
 						if(!stop_lastframe){
 							my.drone.stop();
 							up_lastframe = false;
+							////my.drone.animateLeds('green',5,1000);
 							down_lastframe = false;
 							right_lastframe = false;
 							left_lastframe = false;
